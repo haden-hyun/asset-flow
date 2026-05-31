@@ -67,16 +67,16 @@ class KISApiClient(BaseApiClient):
         response = self.safe_request("GET", url, headers=headers, params=params)
         return response.json()
 
-    def get_account_situation(self) -> Dict:
+    def get_account_balance(self) -> Dict:
         """투자계좌자산현황 조회"""
-        url = self._build_url(KIS.PATHS["account_situation"])
-        headers = self._build_headers(KIS.TR_IDS["account_situation"])
+        url = self._build_url(KIS.PATHS["account_balance"])
+        headers = self._build_headers(KIS.TR_IDS["account_balance"])
 
         params = {
             "CANO": self.config["account"],
             "ACNT_PRDT_CD": self.config["product_code"],
         }
-        params.update(KIS.PARAMS["account_situation"])
+        params.update(KIS.PARAMS["account_balance"])
 
         response = self.safe_request("GET", url, headers=headers, params=params)
         return response.json()
@@ -88,7 +88,7 @@ class KISApiClient(BaseApiClient):
         환율 조회
 
         Args:
-            standard_date: 기준일 (YYYYMMDD)
+            standard_date: 기준일 (YYYY-MM-DD)
             product_codes: 상품 코드 리스트 ['FX@KRWKFTC', 'FX@KRWJS', ...]
 
         Returns:
@@ -97,12 +97,13 @@ class KISApiClient(BaseApiClient):
         url = self._build_url(KIS.PATHS["exchange_rate"])
         headers = self._build_headers(KIS.TR_IDS["exchange_rate"])
 
+        api_date = standard_date.replace("-", "")
         results = []
         for product_code in product_codes:
             params = {
                 "FID_INPUT_ISCD": product_code,
-                "FID_INPUT_DATE_1": standard_date,
-                "FID_INPUT_DATE_2": standard_date,
+                "FID_INPUT_DATE_1": api_date,
+                "FID_INPUT_DATE_2": api_date,
             }
             params.update(KIS.PARAMS["exchange_rate"])
 

@@ -1,11 +1,11 @@
 """
 fundguide.net 펀드 기준가 크롤러
 - 로컬/Airflow 공통 실행 가능 (Playwright 사용)
-- 입력: 표준코드 리스트 -> 출력: [{fund_cd, fund_nm, nav, change, crawled_at}, ...]
+- 입력: 표준코드 리스트 -> 출력: fund_price_daily 스키마 레코드 리스트
 
 사용 예 (로컬):
     uv run playwright install chromium  # 최초 1회
-    uv run python fund_crawler.py
+    uv run python -m src.crawler.fund_crawler
 
 Airflow 주의사항은 파일 하단 docstring 참고.
 """
@@ -16,10 +16,11 @@ import json
 import logging
 import re
 from dataclasses import dataclass, asdict
-from datetime import datetime, timezone
-from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
+from datetime import datetime, timedelta, timezone
 
 logger = logging.getLogger(__name__)
+
+_KST = timezone(timedelta(hours=9))
 
 BASE_URL = "https://www.fundguide.net/Fund/SimpleSearch?search_key={code}"
 NAV_SELECTOR = 'td.taC[data-tab="tab0"]'
@@ -82,8 +83,25 @@ def fetch_fund_quote(page, code: str, timeout_ms: int = 30_000) -> FundQuote:
     )
 
 
+def _get_standard_date() -> str:
+    """KST 기준 전일 날짜 반환 (YYYY-MM-DD)"""
+    return (datetime.now(_KST) - timedelta(days=1)).strftime("%Y-%m-%d")
+
+
+def to_fund_price_record(raw: dict, standard_date: str) -> dict:
+    """크롤링 원본 → fund_price_daily 스키마 변환"""
+    return {
+        "standard_date": standard_date,
+        "product_code": raw["fund_cd"],
+        "product_name": raw["fund_nm"],
+        "standard_price": raw["nav"],
+    }
+
+
 def crawl_fund(code: str, headless: bool = True) -> dict:
     """단일 펀드 코드의 기준가를 크롤링."""
+    from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
+
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=headless)
         context = browser.new_context(
@@ -112,5 +130,9 @@ if __name__ == "__main__":
         level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
     )
     CODES = ["K553W5E17401", "K55105D43299"]
-    out = [crawl_fund(code) for code in CODES]
-    print(json.dumps(out, ensure_ascii=False, indent=2))
+    standard_date = _get_standard_date()
+
+    raw_list = [crawl_fund(code) for code in CODES]
+    db_records = [to_fund_price_record(r, standard_date) for r in raw_list]
+
+    print(json.dumps(db_records, ensure_ascii=False, indent=2))

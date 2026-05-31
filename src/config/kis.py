@@ -10,7 +10,7 @@ class KIS:
         # API명: OAuth 2.0 토큰 발급
         "token": "/oauth2/tokenP",
         # API명: 투자계좌자산현황조회[v1_국내주식-048] → 금현물 및 RP/발행어음 조회용
-        "account_situation": "/uapi/domestic-stock/v1/trading/inquire-account-balance",
+        "account_balance": "/uapi/domestic-stock/v1/trading/inquire-account-balance",
         # API명: 해외주식 종목/지수/환율기간별시세[v1_해외주식-012] → 환율 조회용
         "exchange_rate": "/uapi/overseas-price/v1/quotations/inquire-daily-chartprice",
         # API명: 주식잔고조회[v1_국내주식-006] → 국내주식 잔고 조회용
@@ -23,11 +23,11 @@ class KIS:
         "exchange_rate": "FHKST03030100",
         "domestic_balance": "TTTC8434R",
         "overseas_balance": "TTTS3012R",
-        "account_situation": "CTRP6548R",
+        "account_balance": "CTRP6548R",
     }
 
     PARAMS: Dict[str, dict] = {
-        "account_situation": {
+        "account_balance": {
             "INQR_DVSN_1": "",
             "BSPR_BF_DT_APLY_YN": "",
         },
@@ -54,8 +54,10 @@ class KIS:
         },
     }
 
+    EXCHANGE_RATE_PRODUCT_CODES: List[str] = ["FX@KRWKFTC", "FX@KRWJS", "FX@GBP", "FX@EUR"]
+
     # 투자계좌자산현황 응답의 행 순서 (API가 인덱스 없이 순서로 반환)
-    ACCOUNT_SITUATION_ROW_NAMES: List[str] = [
+    ACCOUNT_BALANCE_ROW_NAMES: List[str] = [
         "주식",
         "펀드/MMW",
         "IMA",
